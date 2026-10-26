@@ -10,6 +10,7 @@ The test split is never loaded here.
 import argparse
 import json
 import math
+from collections import defaultdict
 import os
 import random
 import sys
@@ -109,6 +110,10 @@ def main():
     ap.add_argument("--warmup-frac", type=float, default=0.05)
     ap.add_argument("--seed", type=int, default=42)
     ap.add_argument("--grad-ckpt", action="store_true", help="save memory if OOM")
+    ap.add_argument("--oversample-min", type=int, default=0,
+                    help="raise each (criterion_type, label) group to at least N training rows (0 = off)")
+    ap.add_argument("--max-repeat", type=int, default=4,
+                    help="cap on how many times a group may be multiplied by oversampling")
     ap.add_argument("--hub-id", default=None, help="e.g. username/trialgpt-qwen1.5b-lora")
     args = ap.parse_args()
 
@@ -122,7 +127,19 @@ def main():
 
     tok = AutoTokenizer.from_pretrained(args.model)
     pad_id = tok.pad_token_id if tok.pad_token_id is not None else tok.eos_token_id
-    train_encs = [encode_example(tok, r, args.max_len) for r in load_split("train")]
+    train_rows = load_split("train")
+    train_encs = [encode_example(tok, r, args.max_len) for r in train_rows]
+    if args.oversample_min > 0:
+        groups = defaultdict(list)
+        for i, r in enumerate(train_rows):
+            groups[(r["criterion_type"], r["expert_eligibility"])].append(i)
+        extra = []
+        for key, idx in sorted(groups.items()):
+            target = min(max(len(idx), args.oversample_min), len(idx) * args.max_repeat)
+            extra += [idx[j % len(idx)] for j in range(target - len(idx))]
+            print(f"  oversample {key}: {len(idx)} -> {max(target, len(idx))}")
+        train_encs += [train_encs[i] for i in extra]
+        print(f"training rows after oversampling: {len(train_encs)}")
     val_encs = [encode_example(tok, r, args.max_len) for r in load_split("val")]
     print(f"train examples: {len(train_encs)}  val examples: {len(val_encs)}")
 
