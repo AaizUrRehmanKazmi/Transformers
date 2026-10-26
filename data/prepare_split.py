@@ -21,7 +21,7 @@ OUT = Path(__file__).parent / "split_manifest.json"
 COLUMN_OVERRIDES = {"patient_id": None}
 
 # Columns that hold previous GPT-4 outputs. They must NEVER reach a prompt.
-LEAKY_HINTS = ("gpt", "gpt4", "gpt-4", "pred", "explanation_model")
+LEAKY_HINTS = ("gpt", "gpt4", "gpt-4", "pred", "explanation")
 
 
 def load_all():
