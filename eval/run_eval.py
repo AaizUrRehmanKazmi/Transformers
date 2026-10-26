@@ -27,12 +27,13 @@ from eval.classification import INVALID, classification_report  # noqa: E402
 from eval.evidence import evidence_metrics  # noqa: E402
 
 
-def generate_batch(model, tok, texts, max_new_tokens, eos_ids):
+def generate_batch(model, tok, texts, max_new_tokens, eos_ids, rep_penalty=1.0):
     enc = tok(texts, return_tensors="pt", padding=True, add_special_tokens=False).to(model.device)
     with torch.no_grad():
         out = model.generate(**enc, max_new_tokens=max_new_tokens, do_sample=False,
                              temperature=None, top_p=None, top_k=None,
-                             eos_token_id=eos_ids, pad_token_id=tok.pad_token_id)
+                             eos_token_id=eos_ids, pad_token_id=tok.pad_token_id,
+                             repetition_penalty=rep_penalty)
     return tok.batch_decode(out[:, enc["input_ids"].shape[1]:], skip_special_tokens=True)
 
 
@@ -71,6 +72,8 @@ def main():
     ap.add_argument("--final", action="store_true", help="required to touch the test split")
     ap.add_argument("--batch-size", type=int, default=8)
     ap.add_argument("--max-new-tokens", type=int, default=64)
+    ap.add_argument("--rep-penalty", type=float, default=1.0,
+                    help="1.0 = pure greedy. (The model's default config may set >1.0.)")
     ap.add_argument("--limit", type=int, default=None, help="debug: first N rows only")
     args = ap.parse_args()
     if args.split == "test" and not args.final:
@@ -96,7 +99,8 @@ def main():
 
     records = []
     for i in range(0, len(rows), args.batch_size):
-        outs = generate_batch(model, tok, texts[i:i + args.batch_size], args.max_new_tokens, eos_ids)
+        outs = generate_batch(model, tok, texts[i:i + args.batch_size], args.max_new_tokens, eos_ids,
+                              args.rep_penalty)
         for r, s, raw in zip(rows[i:i + args.batch_size], sents[i:i + args.batch_size], outs):
             parsed = parse_output(raw, r["criterion_type"], len(s))
             records.append({
@@ -111,7 +115,8 @@ def main():
 
     metrics = summarize(records, load_split("train"))
     metrics["settings"] = {"model": args.model, "adapter": args.adapter, "split": args.split,
-                           "decoding": "greedy", "max_new_tokens": args.max_new_tokens,
+                           "decoding": "greedy", "repetition_penalty": args.rep_penalty,
+                           "max_new_tokens": args.max_new_tokens,
                            "batch_size": args.batch_size, "dtype": "float16", "n_rows": len(rows)}
     out = ROOT / "eval" / "results" / args.name
     out.mkdir(parents=True, exist_ok=True)

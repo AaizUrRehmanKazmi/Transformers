@@ -42,7 +42,8 @@ def hf_generate(model, ids, n_new):
     import time
     torch.cuda.synchronize(); t = time.perf_counter()
     out = model.generate(ids, max_new_tokens=n_new, min_new_tokens=n_new, do_sample=False,
-                         temperature=None, top_p=None, top_k=None, use_cache=True)
+                         temperature=None, top_p=None, top_k=None, use_cache=True,
+                         repetition_penalty=1.0)
     torch.cuda.synchronize()
     return out[:, ids.shape[1]:], {"total_s": time.perf_counter() - t}
 
