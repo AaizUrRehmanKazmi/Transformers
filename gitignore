@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+# Adapter checkpoints live on the Hugging Face Hub, not in git
+train/runs/*/epoch*/
+train/runs/*/best/
+*.safetensors
+*.bin
+*.pt
