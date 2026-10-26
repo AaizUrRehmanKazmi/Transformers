@@ -51,7 +51,10 @@ def load_split(name):
 
 def _prompt_ids(tok, sents, row):
     msgs = build_messages(sents, row["criterion_type"], row["criterion_text"])
-    return tok.apply_chat_template(msgs, add_generation_prompt=True, tokenize=True)
+    # Render to text, then tokenize: works across transformers versions
+    # (newer ones return a BatchEncoding from apply_chat_template(tokenize=True)).
+    text = tok.apply_chat_template(msgs, add_generation_prompt=True, tokenize=False)
+    return tok(text, add_special_tokens=False)["input_ids"]
 
 
 def encode_example(tok, row, max_len=2048):
