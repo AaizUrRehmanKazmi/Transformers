@@ -1,0 +1,469 @@
+{
+  "overall": {
+    "n": 206,
+    "accuracy": 0.6747572815533981,
+    "macro_f1_present": 0.5507060664075973,
+    "macro_f1_all": 0.45892172200633113,
+    "invalid_rate": 0.0048543689320388345,
+    "per_class": {
+      "included": {
+        "precision": 0.7058823529411765,
+        "recall": 0.8888888888888888,
+        "f1": 0.7868852459016393,
+        "support": 27
+      },
+      "not included": {
+        "precision": 0.2857142857142857,
+        "recall": 0.2857142857142857,
+        "f1": 0.2857142857142857,
+        "support": 7
+      },
+      "not enough information": {
+        "precision": 0.6170212765957447,
+        "recall": 0.4393939393939394,
+        "f1": 0.5132743362831859,
+        "support": 66
+      },
+      "not applicable": {
+        "precision": 0.5714285714285714,
+        "recall": 0.26666666666666666,
+        "f1": 0.36363636363636365,
+        "support": 15
+      },
+      "excluded": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 0
+      },
+      "not excluded": {
+        "precision": 0.7407407407407407,
+        "recall": 0.8791208791208791,
+        "f1": 0.8040201005025126,
+        "support": 91
+      }
+    },
+    "confusion_matrix": {
+      "labels": [
+        "included",
+        "not included",
+        "not enough information",
+        "not applicable",
+        "excluded",
+        "not excluded",
+        "invalid"
+      ],
+      "rows_gold_cols_pred": [
+        [
+          24,
+          0,
+          3,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          3,
+          2,
+          2,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          7,
+          5,
+          29,
+          2,
+          0,
+          23,
+          0
+        ],
+        [
+          0,
+          0,
+          5,
+          4,
+          0,
+          5,
+          1
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          8,
+          1,
+          2,
+          80,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ]
+    }
+  },
+  "inclusion": {
+    "n": 75,
+    "accuracy": 0.68,
+    "macro_f1_present": 0.44420622093215023,
+    "macro_f1_all": 0.44420622093215023,
+    "invalid_rate": 0.0,
+    "per_class": {
+      "included": {
+        "precision": 0.7058823529411765,
+        "recall": 0.8888888888888888,
+        "f1": 0.7868852459016393,
+        "support": 27
+      },
+      "not included": {
+        "precision": 0.2857142857142857,
+        "recall": 0.2857142857142857,
+        "f1": 0.2857142857142857,
+        "support": 7
+      },
+      "not enough information": {
+        "precision": 0.7575757575757576,
+        "recall": 0.6578947368421053,
+        "f1": 0.704225352112676,
+        "support": 38
+      },
+      "not applicable": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 3
+      }
+    },
+    "confusion_matrix": {
+      "labels": [
+        "included",
+        "not included",
+        "not enough information",
+        "not applicable",
+        "invalid"
+      ],
+      "rows_gold_cols_pred": [
+        [
+          24,
+          0,
+          3,
+          0,
+          0
+        ],
+        [
+          3,
+          2,
+          2,
+          0,
+          0
+        ],
+        [
+          7,
+          5,
+          25,
+          1,
+          0
+        ],
+        [
+          0,
+          0,
+          3,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ]
+    }
+  },
+  "exclusion": {
+    "n": 131,
+    "accuracy": 0.6717557251908397,
+    "macro_f1_present": 0.4796469118077158,
+    "macro_f1_all": 0.35973518385578684,
+    "invalid_rate": 0.007633587786259542,
+    "per_class": {
+      "excluded": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 0
+      },
+      "not excluded": {
+        "precision": 0.7407407407407407,
+        "recall": 0.8791208791208791,
+        "f1": 0.8040201005025126,
+        "support": 91
+      },
+      "not enough information": {
+        "precision": 0.2857142857142857,
+        "recall": 0.14285714285714285,
+        "f1": 0.19047619047619047,
+        "support": 28
+      },
+      "not applicable": {
+        "precision": 0.6666666666666666,
+        "recall": 0.3333333333333333,
+        "f1": 0.4444444444444444,
+        "support": 12
+      }
+    },
+    "confusion_matrix": {
+      "labels": [
+        "excluded",
+        "not excluded",
+        "not enough information",
+        "not applicable",
+        "invalid"
+      ],
+      "rows_gold_cols_pred": [
+        [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          2,
+          80,
+          8,
+          1,
+          0
+        ],
+        [
+          0,
+          23,
+          4,
+          1,
+          0
+        ],
+        [
+          0,
+          5,
+          2,
+          4,
+          1
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ]
+    }
+  },
+  "evidence": {
+    "overall": {
+      "n_rows": 206,
+      "n_gold_empty": 145,
+      "micro": {
+        "precision": 0.5616438356164384,
+        "recall": 0.43617021276595747,
+        "f1": 0.49101796407185627
+      },
+      "macro_nonempty": {
+        "precision": 0.46584699453551914,
+        "recall": 0.5040983606557377,
+        "f1": 0.47017954722872757
+      },
+      "macro_f1_all_rows": 0.799422098936662,
+      "empty_gold_agreement": 0.9379310344827586
+    },
+    "inclusion": {
+      "n_rows": 75,
+      "n_gold_empty": 30,
+      "micro": {
+        "precision": 0.5846153846153846,
+        "recall": 0.6129032258064516,
+        "f1": 0.5984251968503937
+      },
+      "macro_nonempty": {
+        "precision": 0.5796296296296296,
+        "recall": 0.6166666666666667,
+        "f1": 0.5817989417989418
+      },
+      "macro_f1_all_rows": 0.6557460317460317,
+      "empty_gold_agreement": 0.7666666666666667
+    },
+    "exclusion": {
+      "n_rows": 131,
+      "n_gold_empty": 115,
+      "micro": {
+        "precision": 0.375,
+        "recall": 0.09375,
+        "f1": 0.15
+      },
+      "macro_nonempty": {
+        "precision": 0.14583333333333334,
+        "recall": 0.1875,
+        "f1": 0.15625
+      },
+      "macro_f1_all_rows": 0.8816793893129771,
+      "empty_gold_agreement": 0.9826086956521739
+    }
+  },
+  "majority_baseline": {
+    "labels": {
+      "inclusion": "not enough information",
+      "exclusion": "not excluded"
+    },
+    "n": 206,
+    "accuracy": 0.6262135922330098,
+    "macro_f1_present": 0.27176538240368026,
+    "macro_f1_all": 0.2264711520030669,
+    "invalid_rate": 0.0,
+    "per_class": {
+      "included": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 27
+      },
+      "not included": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 7
+      },
+      "not enough information": {
+        "precision": 0.5066666666666667,
+        "recall": 0.5757575757575758,
+        "f1": 0.5390070921985816,
+        "support": 66
+      },
+      "not applicable": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 15
+      },
+      "excluded": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 0
+      },
+      "not excluded": {
+        "precision": 0.6946564885496184,
+        "recall": 1.0,
+        "f1": 0.8198198198198198,
+        "support": 91
+      }
+    },
+    "confusion_matrix": {
+      "labels": [
+        "included",
+        "not included",
+        "not enough information",
+        "not applicable",
+        "excluded",
+        "not excluded",
+        "invalid"
+      ],
+      "rows_gold_cols_pred": [
+        [
+          0,
+          0,
+          27,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          7,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          38,
+          0,
+          0,
+          28,
+          0
+        ],
+        [
+          0,
+          0,
+          3,
+          0,
+          0,
+          12,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          91,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ]
+    }
+  },
+  "output_errors": {
+    "label_not_valid_for_type": 1
+  },
+  "settings": {
+    "model": "Qwen/Qwen2.5-1.5B-Instruct",
+    "adapter": "train/runs/lora_r16_bal/epoch3",
+    "split": "test",
+    "decoding": "greedy",
+    "max_new_tokens": 64,
+    "batch_size": 8,
+    "dtype": "float16",
+    "n_rows": 206
+  }
+}

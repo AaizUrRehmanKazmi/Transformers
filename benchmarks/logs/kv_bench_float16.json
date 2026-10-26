@@ -1,0 +1,234 @@
+{
+  "dtype": "float16",
+  "adapter": "AK302/trialgpt-qwen1.5b-lora",
+  "model_mem_gib": 2.8841819763183594,
+  "kv_bytes_per_token": 28672,
+  "repeats": 3,
+  "results": [
+    {
+      "input_len": 128,
+      "output_len": 16,
+      "uncached": {
+        "prefill_s": 0.0428046090000862,
+        "decode_s": 0.6701713980000932,
+        "new_tokens": 16,
+        "peak_mem_gib": 2.966233730316162
+      },
+      "cached": {
+        "prefill_s": 0.04615430199919501,
+        "decode_s": 0.5693616119988292,
+        "new_tokens": 16,
+        "cache_len": 143,
+        "cache_bytes": 4100096,
+        "peak_mem_gib": 2.927320957183838
+      },
+      "hf_generate": {
+        "total_s": 0.6548807759991178,
+        "peak_mem_gib": 2.897190570831299
+      },
+      "cached_equals_uncached": true,
+      "hf_equals_uncached": true,
+      "first_mismatch_index": null
+    },
+    {
+      "input_len": 128,
+      "output_len": 64,
+      "uncached": {
+        "prefill_s": 0.04621996300011233,
+        "decode_s": 3.1526231610005198,
+        "new_tokens": 64,
+        "peak_mem_gib": 2.995115280151367
+      },
+      "cached": {
+        "prefill_s": 0.047140664000835386,
+        "decode_s": 2.333406873000058,
+        "new_tokens": 64,
+        "cache_len": 191,
+        "cache_bytes": 5476352,
+        "peak_mem_gib": 2.9273228645324707
+      },
+      "hf_generate": {
+        "total_s": 2.584206941000957,
+        "peak_mem_gib": 2.8971920013427734
+      },
+      "cached_equals_uncached": true,
+      "hf_equals_uncached": true,
+      "first_mismatch_index": null
+    },
+    {
+      "input_len": 128,
+      "output_len": 128,
+      "uncached": {
+        "prefill_s": 0.044058172999939416,
+        "decode_s": 7.074190836001435,
+        "new_tokens": 128,
+        "peak_mem_gib": 3.0304861068725586
+      },
+      "cached": {
+        "prefill_s": 0.04600155300067854,
+        "decode_s": 4.82657934099916,
+        "new_tokens": 128,
+        "cache_len": 255,
+        "cache_bytes": 7311360,
+        "peak_mem_gib": 2.927323818206787
+      },
+      "hf_generate": {
+        "total_s": 5.189307568000004,
+        "peak_mem_gib": 2.898766040802002
+      },
+      "cached_equals_uncached": true,
+      "hf_equals_uncached": true,
+      "first_mismatch_index": null
+    },
+    {
+      "input_len": 256,
+      "output_len": 16,
+      "uncached": {
+        "prefill_s": 0.06601549700098985,
+        "decode_s": 1.3206623489986669,
+        "new_tokens": 16,
+        "peak_mem_gib": 3.0390543937683105
+      },
+      "cached": {
+        "prefill_s": 0.050331351998465834,
+        "decode_s": 0.5459402859996771,
+        "new_tokens": 16,
+        "cache_len": 271,
+        "cache_bytes": 7770112,
+        "peak_mem_gib": 2.9701294898986816
+      },
+      "hf_generate": {
+        "total_s": 0.6379560549994494,
+        "peak_mem_gib": 2.9097094535827637
+      },
+      "cached_equals_uncached": true,
+      "hf_equals_uncached": false,
+      "first_mismatch_index": null
+    },
+    {
+      "input_len": 256,
+      "output_len": 64,
+      "uncached": {
+        "prefill_s": 0.06765087699932337,
+        "decode_s": 5.695471216000442,
+        "new_tokens": 64,
+        "peak_mem_gib": 3.06638240814209
+      },
+      "cached": {
+        "prefill_s": 0.04903138100053184,
+        "decode_s": 2.284314731001359,
+        "new_tokens": 64,
+        "cache_len": 319,
+        "cache_bytes": 9146368,
+        "peak_mem_gib": 2.9701294898986816
+      },
+      "hf_generate": {
+        "total_s": 2.7327569230001245,
+        "peak_mem_gib": 2.909709930419922
+      },
+      "cached_equals_uncached": true,
+      "hf_equals_uncached": false,
+      "first_mismatch_index": null
+    },
+    {
+      "input_len": 256,
+      "output_len": 128,
+      "uncached": {
+        "prefill_s": 0.06876739099971019,
+        "decode_s": 11.776064662000863,
+        "new_tokens": 128,
+        "peak_mem_gib": 3.1034345626831055
+      },
+      "cached": {
+        "prefill_s": 0.05000040499908209,
+        "decode_s": 4.747063663000517,
+        "new_tokens": 128,
+        "cache_len": 383,
+        "cache_bytes": 10981376,
+        "peak_mem_gib": 2.970130443572998
+      },
+      "hf_generate": {
+        "total_s": 5.071739770999557,
+        "peak_mem_gib": 2.9097113609313965
+      },
+      "cached_equals_uncached": true,
+      "hf_equals_uncached": false,
+      "first_mismatch_index": null
+    },
+    {
+      "input_len": 512,
+      "output_len": 16,
+      "uncached": {
+        "prefill_s": 0.14189747399905173,
+        "decode_s": 2.5121503390000726,
+        "new_tokens": 16,
+        "peak_mem_gib": 3.1848902702331543
+      },
+      "cached": {
+        "prefill_s": 0.12179074300001957,
+        "decode_s": 0.5635493859990675,
+        "new_tokens": 16,
+        "cache_len": 527,
+        "cache_bytes": 15110144,
+        "peak_mem_gib": 3.053596019744873
+      },
+      "hf_generate": {
+        "total_s": 0.7108268859992677,
+        "peak_mem_gib": 2.945981025695801
+      },
+      "cached_equals_uncached": true,
+      "hf_equals_uncached": true,
+      "first_mismatch_index": null
+    },
+    {
+      "input_len": 512,
+      "output_len": 64,
+      "uncached": {
+        "prefill_s": 0.14571003899982315,
+        "decode_s": 11.17402013300125,
+        "new_tokens": 64,
+        "peak_mem_gib": 3.2120819091796875
+      },
+      "cached": {
+        "prefill_s": 0.12539280399869313,
+        "decode_s": 2.3958833220003726,
+        "new_tokens": 64,
+        "cache_len": 575,
+        "cache_bytes": 16486400,
+        "peak_mem_gib": 3.0535969734191895
+      },
+      "hf_generate": {
+        "total_s": 2.6982167969999864,
+        "peak_mem_gib": 2.9459824562072754
+      },
+      "cached_equals_uncached": true,
+      "hf_equals_uncached": true,
+      "first_mismatch_index": null
+    },
+    {
+      "input_len": 512,
+      "output_len": 128,
+      "uncached": {
+        "prefill_s": 0.14726230800079065,
+        "decode_s": 23.473144748999403,
+        "new_tokens": 128,
+        "peak_mem_gib": 3.2493834495544434
+      },
+      "cached": {
+        "prefill_s": 0.12621092300105374,
+        "decode_s": 4.876964977998796,
+        "new_tokens": 128,
+        "cache_len": 639,
+        "cache_bytes": 18321408,
+        "peak_mem_gib": 3.053597927093506
+      },
+      "hf_generate": {
+        "total_s": 5.275472769999396,
+        "peak_mem_gib": 2.94598388671875
+      },
+      "cached_equals_uncached": true,
+      "hf_equals_uncached": true,
+      "first_mismatch_index": null
+    }
+  ]
+}
