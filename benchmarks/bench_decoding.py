@@ -48,6 +48,18 @@ def hf_generate(model, ids, n_new):
     return out[:, ids.shape[1]:], {"total_s": time.perf_counter() - t}
 
 
+def equal_before_eos(a, b, eos):
+    """Equality up to (excluding) the first end-of-turn token in `a`. HF generate(min_new_tokens=N)
+    forbids EOS until N tokens exist, so after that point it legitimately diverges from an
+    unconstrained greedy decode that emits EOS and keeps going."""
+    cut = a.shape[1]
+    for i, t in enumerate(a[0].tolist()):
+        if t in eos:
+            cut = i
+            break
+    return torch.equal(a[:, :cut], b[:, :cut])
+
+
 def timed(fn, model, ids, n_new, repeats):
     fn(model, ids, n_new)                                    # warm-up
     runs, tokens = [], None
@@ -75,6 +87,7 @@ def main():
     assert torch.cuda.is_available(), "benchmark needs a GPU"
 
     tok = load_tokenizer()
+    eos_set = {tok.convert_tokens_to_ids("<|im_end|>"), tok.eos_token_id}
     adapter = None if args.no_adapter else args.adapter
     model = load_model(adapter=adapter, subfolder=args.subfolder, dtype=args.dtype)
     rows = load_split("val")                      # benchmark prompts come from validation notes
@@ -93,7 +106,7 @@ def main():
             got, s_c = timed(generate_cached, model, ids, N, args.repeats)
             hf, s_hf = timed(hf_generate, model, ids, N, args.repeats)
             match_c = torch.equal(ref, got)
-            match_hf = torch.equal(ref, hf)
+            match_hf = equal_before_eos(ref, hf, eos_set)
             first_bad = None if match_c else int((ref != got).nonzero()[0, 1])
             for mode, s, m in (("uncached", s_ref, True), ("cached", s_c, match_c)):
                 tps = (N - 1) / s["decode_s"]

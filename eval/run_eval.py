@@ -67,7 +67,8 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--name", required=True)
     ap.add_argument("--model", default="Qwen/Qwen2.5-1.5B-Instruct")
-    ap.add_argument("--adapter", default=None)
+    ap.add_argument("--adapter", default=None, help="Hub repo id or local adapter directory")
+    ap.add_argument("--subfolder", default=None, help="subfolder inside the Hub adapter repo")
     ap.add_argument("--split", choices=["val", "test"], default="val")
     ap.add_argument("--final", action="store_true", help="required to touch the test split")
     ap.add_argument("--batch-size", type=int, default=8)
@@ -86,7 +87,8 @@ def main():
     model = AutoModelForCausalLM.from_pretrained(args.model, torch_dtype=torch.float16).to("cuda").eval()
     if args.adapter:
         from peft import PeftModel
-        model = PeftModel.from_pretrained(model, args.adapter).eval()
+        sub = {"subfolder": args.subfolder} if args.subfolder else {}
+        model = PeftModel.from_pretrained(model, args.adapter, **sub).eval()
     eos_ids = sorted({tok.convert_tokens_to_ids("<|im_end|>"), tok.eos_token_id})
 
     rows = load_split(args.split)
@@ -114,7 +116,8 @@ def main():
         print(f"{min(i + args.batch_size, len(rows))}/{len(rows)}", flush=True)
 
     metrics = summarize(records, load_split("train"))
-    metrics["settings"] = {"model": args.model, "adapter": args.adapter, "split": args.split,
+    metrics["settings"] = {"model": args.model, "adapter": (f"{args.adapter}/{args.subfolder}" if args.subfolder else args.adapter),
+                           "split": args.split,
                            "decoding": "greedy", "repetition_penalty": args.rep_penalty,
                            "max_new_tokens": args.max_new_tokens,
                            "batch_size": args.batch_size, "dtype": "float16", "n_rows": len(rows)}

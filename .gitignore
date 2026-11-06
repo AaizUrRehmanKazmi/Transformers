@@ -9,3 +9,4 @@ train/runs/*/best/
 *.safetensors
 *.bin
 *.pt
+app/reports/
