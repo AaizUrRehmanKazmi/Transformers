@@ -23,7 +23,8 @@ RULES = (
     "exclusion criterion met).\n"
     "These rules aggregate criterion-level predictions. They are not a ground-truth label, and "
     "missing evidence is never treated as proof of eligibility or ineligibility. Any included / "
-    "not included / excluded / not excluded decision that cites no evidence is flagged for manual verification."
+    "not included / excluded / not excluded decision that cites no evidence is flagged for manual verification. "
+    "A label that contradicts a simple rule-based age check is flagged too (labels are never changed)."
 )
 
 SAMPLES = {
@@ -103,6 +104,94 @@ def _aggregate_core(results):
             "missing": []}
 
 
+# ---- simple rule-based age consistency check (a warning only; it never changes the model's label) ----
+_AGE_WORDS = re.compile(r"\bage[ds]?\b|\byears?\b|\byrs?\b|\byo\b|\bolder\b|\byounger\b", re.I)
+_AGE_STOP = {"age", "aged", "ages", "years", "year", "yrs", "yr", "old", "older", "younger", "of", "to", "and", "or",
+             "patients", "patient", "adults", "adult", "participants", "subjects", "must", "be", "than", "at", "least",
+             "most", "between", "from", "is", "are", "a", "the", "over", "under", "above", "below", "less", "more",
+             "greater", "fewer", "no", "not", "minimum", "maximum", "up", "men", "women", "male", "female", "y", "o",
+             "yo", "only", "eligible"}
+_RANGE = r"(\d+)\s*(?:to|-|\u2013|and)\s*(\d+)"
+_UP_INC = [r"not older than\s*(\d+)", r"no older than\s*(\d+)", r"at most\s*(\d+)", r"up to\s*(\d+)",
+           r"maximum(?: age)?(?: of)?\s*(\d+)",
+           r"(\d+)\s*(?:years?|yrs?)?\s*(?:of age)?\s*(?:or|and)\s*(?:younger|below|under|less)", r"(?:<=|\u2264)\s*(\d+)"]
+_LO_INC = [r"at least\s*(\d+)", r"not younger than\s*(\d+)", r"no younger than\s*(\d+)",
+           r"minimum(?: age)?(?: of)?\s*(\d+)",
+           r"(\d+)\s*(?:years?|yrs?)?\s*(?:of age)?\s*(?:or|and)\s*(?:older|above|over|more)", r"(\d+)\s*\+",
+           r"(?:>=|\u2265)\s*(\d+)"]
+_LO_EXC = [r"(?:older than|over|above|greater than|more than|>)\s*(\d+)"]
+_UP_EXC = [r"(?:younger than|under|below|less than|fewer than|<)\s*(\d+)"]
+
+
+def patient_age(sentences):
+    """The single unambiguous age (years) stated in the note, else None."""
+    text = " ".join(t for _, t in sentences)
+    pats = [r"(\d{1,3})\s*-?\s*(?:years?|yrs?)[\s-]*old", r"(\d{1,3})\s*-?\s*y/?o\b",
+            r"\baged?\s+(\d{1,3})\b", r"\bage\s*[:=]?\s*(\d{1,3})\b"]
+    found = {int(m.group(1)) for p in pats for m in re.finditer(p, text, re.I)}
+    found = {a for a in found if 0 <= a <= 120}
+    return found.pop() if len(found) == 1 else None
+
+
+def age_bounds(criterion):
+    """((value, inclusive) or None for the lower bound, same for the upper bound), or None when the
+    criterion is not a plain age limit (compound or unrecognised criteria are skipped)."""
+    c = criterion.lower()
+    if len(c.split()) > 15 or not _AGE_WORDS.search(c):
+        return None
+    lo = hi = None
+    m = re.search(_RANGE, c)
+    if m:
+        lo, hi = (int(m.group(1)), True), (int(m.group(2)), True)
+        c = c[:m.start()] + " " + c[m.end():]
+    else:
+        for kind, pats in (("hi_inc", _UP_INC), ("lo_inc", _LO_INC), ("lo_exc", _LO_EXC), ("hi_exc", _UP_EXC)):
+            for p in pats:
+                m = re.search(p, c)
+                if m:
+                    v = (int(m.group(1)), kind.endswith("inc"))
+                    if kind.startswith("lo"):
+                        lo = v
+                    else:
+                        hi = v
+                    c = c[:m.start()] + " " + c[m.end():]
+                    break
+    if lo is None and hi is None:
+        return None
+    rest = [w for w in re.findall(r"[a-z]+", c) if w not in _AGE_STOP]
+    return None if len(rest) > 1 else (lo, hi)
+
+
+def _describe_bounds(lo, hi):
+    parts = []
+    if lo:
+        parts.append(f"age {'>=' if lo[1] else '>'} {lo[0]}")
+    if hi:
+        parts.append(f"age {'<=' if hi[1] else '<'} {hi[0]}")
+    return " and ".join(parts)
+
+
+def age_check(sentences, ctype, criterion, label):
+    """Warning text if the model's label contradicts a simple age rule, else None."""
+    if label is None:
+        return None
+    age, bounds = patient_age(sentences), age_bounds(criterion)
+    if age is None or bounds is None:
+        return None
+    lo, hi = bounds
+    met = ((lo is None or (age >= lo[0] if lo[1] else age > lo[0]))
+           and (hi is None or (age <= hi[0] if hi[1] else age < hi[0])))
+    if ctype == "inclusion":
+        expected = "included" if met else "not included"
+    else:
+        expected = "excluded" if met else "not excluded"
+    if label == expected:
+        return None
+    return (f"Rule-based age check: the note states age {age} and the criterion requires "
+            f"{_describe_bounds(lo, hi)}, which implies '{expected}', but the model predicted '{label}'. "
+            "Verify manually.")
+
+
 DECISIVE = ("included", "not included", "excluded", "not excluded")
 
 
@@ -114,10 +203,13 @@ def is_unsupported(r):
 def aggregate(results):
     out = _aggregate_core(results)
     out["unsupported"] = [r["criterion"] for r in results if is_unsupported(r)]
+    out["contradictions"] = [r["criterion"] for r in results if r.get("age_flag")]
     if out["unsupported"]:
         out["reason"] += f" {len(out['unsupported'])} decision(s) cite no evidence and must be verified manually."
-        if out["status"] == "PRELIMINARILY ELIGIBLE":
-            out["status"] = "PRELIMINARILY ELIGIBLE (needs review)"
+    if out["contradictions"]:
+        out["reason"] += f" {len(out['contradictions'])} label(s) contradict a rule-based age check."
+    if (out["unsupported"] or out["contradictions"]) and out["status"] == "PRELIMINARILY ELIGIBLE":
+        out["status"] = "PRELIMINARILY ELIGIBLE (needs review)"
     return out
 
 
@@ -145,6 +237,8 @@ def render_cards_html(results, sentences, overall):
         extra = "" if r["valid"] else f"<p><b>Parse problem:</b> {_esc(r['error'])}. Raw output: <code>{_esc(r['raw'][:300])}</code></p>"
         if is_unsupported(r):
             extra += "<p style='color:#b26a00'><b>Warning:</b> this decision cites no supporting sentence; verify it manually.</p>"
+        if r.get("age_flag"):
+            extra += f"<p style='color:#e53935'><b>Consistency check:</b> {_esc(r['age_flag'])}</p>"
         trunc = "<p><i>Note was truncated to fit the context window for this criterion.</i></p>" if r.get("truncated") else ""
         cards.append(
             f"<div style='border:1px solid #8886;border-radius:8px;padding:10px 14px;margin:10px 0'>"
@@ -172,6 +266,8 @@ def build_report_markdown(results, sentences, overall, meta):
         lines += ["Criteria with missing information:"] + [f"- {c}" for c in overall["missing"]] + [""]
     if overall.get("unsupported"):
         lines += ["Decisions without cited evidence (verify manually):"] + [f"- {c}" for c in overall["unsupported"]] + [""]
+    if overall.get("contradictions"):
+        lines += ["Labels contradicting the rule-based age check:"] + [f"- {c}" for c in overall["contradictions"]] + [""]
     lines += ["Aggregation rules:", "", "```", RULES, "```", "", "## Criterion-level results", "",
               "| # | Type | Criterion | Predicted label | Cited sentence ids | Evidence text | Explanation |",
               "|---|---|---|---|---|---|---|"]

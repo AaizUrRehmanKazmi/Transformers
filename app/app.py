@@ -26,7 +26,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 
 from app.screening import (DISCLAIMER, RULES, SAMPLES, InputError, aggregate, render_cards_html,  # noqa: E402
-                           save_report, validate_inputs)
+                           save_report, validate_inputs, age_check)
 from core.kv_cache import generate_cached, generate_uncached  # noqa: E402
 from core.model_loader import (ADAPTER_REPO, ADAPTER_SUBFOLDER, DRAFT_ID, TARGET_ID,  # noqa: E402
                                default_device, load_model, load_tokenizer)
@@ -104,6 +104,7 @@ def screen(note, incl, excl, mode_label, progress=gr.Progress()):
             "ctype": ctype, "criterion": ctext, "valid": parsed.valid, "error": parsed.error, "raw": raw,
             "label": parsed.label if parsed.valid else None, "evidence": ev, "truncated": truncated,
             "seconds": time.perf_counter() - t0,
+            "age_flag": age_check(sentences, ctype, ctext, parsed.label if parsed.valid else None),
             "explanation": (render_explanation(parsed.label, parsed.evidence, sentences) if parsed.valid
                             else "The model output could not be parsed; treated as missing information."),
         })
@@ -118,6 +119,9 @@ def screen(note, incl, excl, mode_label, progress=gr.Progress()):
     if overall.get("unsupported"):
         summary += ("\n\n**Decisions without cited evidence (verify manually):**\n"
                     + "\n".join(f"- {c}" for c in overall["unsupported"]))
+    if overall.get("contradictions"):
+        summary += ("\n\n**Labels contradicting the rule-based age check (verify manually):**\n"
+                    + "\n".join(f"- {c}" for c in overall["contradictions"]))
     if any(r["truncated"] for r in results):
         summary += "\n\n*Warning: the note was truncated for at least one criterion (context limit).*"
     table = [[r["ctype"], r["criterion"], r["label"] or "unparsed",

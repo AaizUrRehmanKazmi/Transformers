@@ -1,7 +1,7 @@
 import pytest
 
 from app.screening import (InputError, aggregate, build_report_html, build_report_markdown, number_note,
-                           parse_criteria, validate_inputs)
+                           parse_criteria, validate_inputs, age_bounds, age_check, patient_age)
 
 NOTE = "A 62-year-old man presents with chest pain. He has diabetes. He takes aspirin daily."
 
@@ -44,6 +44,42 @@ def test_decision_without_evidence_is_flagged():
     r["evidence"] = []
     ov = aggregate([res("inclusion", "included"), r])
     assert ov["unsupported"] == ["prior disease"]
+    assert ov["status"] == "PRELIMINARILY ELIGIBLE (needs review)"
+
+
+def test_patient_age():
+    assert patient_age(number_note("A 15 years old male with no pain")) == 15
+    assert patient_age([(0, "A 52-year-old man with diabetes.")]) == 52
+    assert patient_age([(0, "She is aged 70.")]) == 70
+    assert patient_age([(0, "A 58-year-old woman with a 60 years old husband.")]) is None
+    assert patient_age([(0, "A 6-month-old infant.")]) is None
+
+
+def test_age_bounds():
+    assert age_bounds("At least 40 years old") == ((40, True), None)
+    assert age_bounds("18 to 60 years") == ((18, True), (60, True))
+    assert age_bounds("Younger than 18 years of age") == (None, (18, False))
+    assert age_bounds("Age 18 years or older") == ((18, True), None)
+    assert age_bounds("Adults aged over 65 years") == ((65, False), None)
+    assert age_bounds("Diabetes for more than 5 years") is None
+    assert age_bounds("Prior history of cardiovascular disease") is None
+
+
+def test_age_check_flags_contradictions():
+    s = [(0, "A 15 years old male with no pain")]
+    assert "not included" in age_check(s, "inclusion", "At least 40 years old", "included")
+    assert age_check(s, "inclusion", "At least 40 years old", "not included") is None
+    assert "excluded" in age_check(s, "exclusion", "Younger than 18 years of age", "not excluded")
+    assert "not included" in age_check(s, "inclusion", "18 to 60 years", "included")
+    assert age_check(s, "inclusion", "Healthy volunteers with diabetes aged 18 to 60 years", "included") is None
+    assert age_check([(0, "No age stated here.")], "inclusion", "At least 40 years old", "included") is None
+
+
+def test_age_flag_needs_review():
+    r = res("inclusion", "included", criterion="18 to 60 years")
+    r["age_flag"] = "contradiction"
+    ov = aggregate([r])
+    assert ov["contradictions"] == ["18 to 60 years"]
     assert ov["status"] == "PRELIMINARILY ELIGIBLE (needs review)"
 
 
