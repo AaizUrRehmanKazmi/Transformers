@@ -118,7 +118,8 @@ def _badge(label):
 
 def render_cards_html(results, sentences, overall):
     cited = {i for r in results for i, _ in r["evidence"]}
-    note = "<br>".join(f"<mark>[{i}] {_esc(t)}</mark>" if i in cited else f"[{i}] {_esc(t)}" for i, t in sentences)
+    mark = "<mark style='background:#ffe066;color:#111;padding:1px 4px;border-radius:3px'>"
+    note = "<br>".join(f"{mark}[{i}] {_esc(t)}</mark>" if i in cited else f"[{i}] {_esc(t)}" for i, t in sentences)
     cards = []
     for n, r in enumerate(results, 1):
         ev = "".join(f"<li><b>[{i}]</b> {_esc(t)}</li>" for i, t in r["evidence"]) or "<li><i>No supporting sentence cited.</i></li>"
