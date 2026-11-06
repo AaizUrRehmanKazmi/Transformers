@@ -22,7 +22,8 @@ RULES = (
     "4. Otherwise -> PRELIMINARILY ELIGIBLE (inclusion criteria included or not applicable, no "
     "exclusion criterion met).\n"
     "These rules aggregate criterion-level predictions. They are not a ground-truth label, and "
-    "missing evidence is never treated as proof of eligibility or ineligibility."
+    "missing evidence is never treated as proof of eligibility or ineligibility. Any included / "
+    "not included / excluded / not excluded decision that cites no evidence is flagged for manual verification."
 )
 
 SAMPLES = {
@@ -84,7 +85,7 @@ def validate_inputs(note, incl_text, excl_text):
     return sentences, criteria
 
 
-def aggregate(results):
+def _aggregate_core(results):
     """Explicit rule-based overall outcome (see RULES)."""
     excluded = [r for r in results if r["ctype"] == "exclusion" and r["label"] == "excluded"]
     not_incl = [r for r in results if r["ctype"] == "inclusion" and r["label"] == "not included"]
@@ -100,6 +101,24 @@ def aggregate(results):
                 "missing": [r["criterion"] for r in missing]}
     return {"status": "PRELIMINARILY ELIGIBLE", "reason": "No exclusion criterion met and every inclusion criterion included or not applicable.",
             "missing": []}
+
+
+DECISIVE = ("included", "not included", "excluded", "not excluded")
+
+
+def is_unsupported(r):
+    """A decisive label (not 'not applicable' / 'not enough information') that cites no evidence."""
+    return bool(r["valid"] and r["label"] in DECISIVE and not r["evidence"])
+
+
+def aggregate(results):
+    out = _aggregate_core(results)
+    out["unsupported"] = [r["criterion"] for r in results if is_unsupported(r)]
+    if out["unsupported"]:
+        out["reason"] += f" {len(out['unsupported'])} decision(s) cite no evidence and must be verified manually."
+        if out["status"] == "PRELIMINARILY ELIGIBLE":
+            out["status"] = "PRELIMINARILY ELIGIBLE (needs review)"
+    return out
 
 
 _COLORS = {"included": "#2e7d32", "not excluded": "#2e7d32", "excluded": "#c62828", "not included": "#c62828",
@@ -124,6 +143,8 @@ def render_cards_html(results, sentences, overall):
     for n, r in enumerate(results, 1):
         ev = "".join(f"<li><b>[{i}]</b> {_esc(t)}</li>" for i, t in r["evidence"]) or "<li><i>No supporting sentence cited.</i></li>"
         extra = "" if r["valid"] else f"<p><b>Parse problem:</b> {_esc(r['error'])}. Raw output: <code>{_esc(r['raw'][:300])}</code></p>"
+        if is_unsupported(r):
+            extra += "<p style='color:#b26a00'><b>Warning:</b> this decision cites no supporting sentence; verify it manually.</p>"
         trunc = "<p><i>Note was truncated to fit the context window for this criterion.</i></p>" if r.get("truncated") else ""
         cards.append(
             f"<div style='border:1px solid #8886;border-radius:8px;padding:10px 14px;margin:10px 0'>"
@@ -149,6 +170,8 @@ def build_report_markdown(results, sentences, overall, meta):
     lines += ["", f"## Overall (rule-based): {overall['status']}", "", overall["reason"], ""]
     if overall["missing"]:
         lines += ["Criteria with missing information:"] + [f"- {c}" for c in overall["missing"]] + [""]
+    if overall.get("unsupported"):
+        lines += ["Decisions without cited evidence (verify manually):"] + [f"- {c}" for c in overall["unsupported"]] + [""]
     lines += ["Aggregation rules:", "", "```", RULES, "```", "", "## Criterion-level results", "",
               "| # | Type | Criterion | Predicted label | Cited sentence ids | Evidence text | Explanation |",
               "|---|---|---|---|---|---|---|"]

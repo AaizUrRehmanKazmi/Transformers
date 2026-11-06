@@ -115,6 +115,9 @@ def screen(note, incl, excl, mode_label, progress=gr.Progress()):
     summary = f"### {overall['status']}\n{overall['reason']}"
     if overall["missing"]:
         summary += "\n\n**Missing information for:**\n" + "\n".join(f"- {c}" for c in overall["missing"])
+    if overall.get("unsupported"):
+        summary += ("\n\n**Decisions without cited evidence (verify manually):**\n"
+                    + "\n".join(f"- {c}" for c in overall["unsupported"]))
     if any(r["truncated"] for r in results):
         summary += "\n\n*Warning: the note was truncated for at least one criterion (context limit).*"
     table = [[r["ctype"], r["criterion"], r["label"] or "unparsed",

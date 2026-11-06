@@ -39,6 +39,14 @@ def test_aggregation_rules():
     assert aggregate([res("inclusion", "included"), res("exclusion", "not applicable")])["status"] == "PRELIMINARILY ELIGIBLE"
 
 
+def test_decision_without_evidence_is_flagged():
+    r = res("exclusion", "not excluded", criterion="prior disease")
+    r["evidence"] = []
+    ov = aggregate([res("inclusion", "included"), r])
+    assert ov["unsupported"] == ["prior disease"]
+    assert ov["status"] == "PRELIMINARILY ELIGIBLE (needs review)"
+
+
 def test_report_contains_disclaimer_and_escapes_html():
     results = [res("inclusion", "included", criterion="<script>alert(1)</script>")]
     sents = [(0, "x")]
