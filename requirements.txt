@@ -1,0 +1,13 @@
+torch>=2.3
+transformers>=4.45
+datasets
+peft>=0.12
+accelerate
+bitsandbytes
+scikit-learn
+numpy
+pandas
+matplotlib
+gradio>=4.40
+huggingface_hub
+pytest

@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+.pytest_cache/
+
+# LoRA adapter checkpoints
+train/runs/*/epoch*/
+train/runs/*/best/
+*.safetensors
+*.bin
+*.pt
