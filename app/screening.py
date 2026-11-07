@@ -24,7 +24,9 @@ RULES = (
     "These rules aggregate criterion-level predictions. They are not a ground-truth label, and "
     "missing evidence is never treated as proof of eligibility or ineligibility. Any included / "
     "not included / excluded / not excluded decision that cites no evidence is flagged for manual verification. "
-    "A label that contradicts a simple rule-based age check is flagged too (labels are never changed)."
+    "Simple age limits with an explicit patient age are resolved by a rule-based check. "
+    "Decisive model labels without evidence are treated as not enough information. "
+    "Original model labels and reasons for adjustments are retained in each explanation."
 )
 
 SAMPLES = {
@@ -195,6 +197,39 @@ def age_check(sentences, ctype, criterion, label):
 DECISIVE = ("included", "not included", "excluded", "not excluded")
 
 
+def review_result(r, sentences):
+    """Apply conservative application checks, retaining the original model output."""
+    r = dict(r)
+    r["model_label"] = r["label"]
+    r["model_evidence"] = list(r["evidence"])
+    if not r["valid"]:
+        return r
+    # Automatic correction is narrower than the warning heuristic: require a
+    # patient introduction and a fully recognised, simple age criterion.
+    intro = re.match(r"^(?:A|An|The patient is a)\s+(\d{1,3})[- ]year[- ]old\s+(?:man|woman|male|female|boy|girl|patient)\b",
+                     sentences[0][1], re.I) if sentences else None
+    simple = re.fullmatch(
+        r"(?:adults?\s+)?age[d]?\s+(?:\d+\s+(?:years?\s+)?or\s+(?:older|younger)|\d+\s+to\s+\d+\s*(?:years?)?)\.?",
+        r["criterion"].strip(), re.I)
+    bounds = age_bounds(r["criterion"]) if simple else None
+    age = patient_age(sentences)
+    if intro and bounds and age == int(intro.group(1)):
+        lo, hi = bounds
+        met = ((lo is None or (age >= lo[0] if lo[1] else age > lo[0]))
+               and (hi is None or (age <= hi[0] if hi[1] else age < hi[0])))
+        r["label"] = (("included" if met else "not included") if r["ctype"] == "inclusion"
+                      else ("excluded" if met else "not excluded"))
+        r["evidence"] = [sentences[0]]
+        r["explanation"] = (f"Age check: patient age {age}; criterion {_describe_bounds(lo, hi)}. "
+                            f"Checked label: '{r['label']}'. Original model label: '{r['model_label']}'.")
+        r["age_flag"] = None
+    elif is_unsupported(r):
+        r["label"] = "not enough information"
+        r["explanation"] = (f"Original model label: '{r['model_label']}'. No supporting sentence was cited; "
+                            "the application treats this decision as not enough information pending review.")
+    return r
+
+
 def is_unsupported(r):
     """A decisive label (not 'not applicable' / 'not enough information') that cites no evidence."""
     return bool(r["valid"] and r["label"] in DECISIVE and not r["evidence"])
@@ -269,7 +304,7 @@ def build_report_markdown(results, sentences, overall, meta):
     if overall.get("contradictions"):
         lines += ["Labels contradicting the rule-based age check:"] + [f"- {c}" for c in overall["contradictions"]] + [""]
     lines += ["Aggregation rules:", "", "```", RULES, "```", "", "## Criterion-level results", "",
-              "| # | Type | Criterion | Predicted label | Cited sentence ids | Evidence text | Explanation |",
+              "| # | Type | Criterion | Reviewed label | Cited sentence ids | Evidence text | Explanation |",
               "|---|---|---|---|---|---|---|"]
     for n, r in enumerate(results, 1):
         ids = ", ".join(str(i) for i, _ in r["evidence"]) or "-"

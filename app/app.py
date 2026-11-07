@@ -26,7 +26,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 
 from app.screening import (DISCLAIMER, RULES, SAMPLES, InputError, aggregate, render_cards_html,  # noqa: E402
-                           save_report, validate_inputs, age_check)
+                           save_report, validate_inputs, age_check, review_result)
 from core.kv_cache import generate_cached, generate_uncached  # noqa: E402
 from core.model_loader import (ADAPTER_REPO, ADAPTER_SUBFOLDER, DRAFT_ID, TARGET_ID,  # noqa: E402
                                default_device, load_model, load_tokenizer)
@@ -100,14 +100,14 @@ def screen(note, incl, excl, mode_label, progress=gr.Progress()):
         raw = ENGINE.tok.decode(toks[0], skip_special_tokens=True)
         parsed = parse_output(raw, ctype, kept[-1][0] + 1)
         ev = [(i, by_id[i]) for i in parsed.evidence if i in by_id] if parsed.valid else []
-        results.append({
+        results.append(review_result({
             "ctype": ctype, "criterion": ctext, "valid": parsed.valid, "error": parsed.error, "raw": raw,
             "label": parsed.label if parsed.valid else None, "evidence": ev, "truncated": truncated,
             "seconds": time.perf_counter() - t0,
             "age_flag": age_check(sentences, ctype, ctext, parsed.label if parsed.valid else None),
             "explanation": (render_explanation(parsed.label, parsed.evidence, sentences) if parsed.valid
                             else "The model output could not be parsed; treated as missing information."),
-        })
+        }, sentences))
     overall = aggregate(results)
     meta = {"timestamp": time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()), "model": TARGET_ID,
             "adapter": ENGINE.adapter, "decoding_mode": mode_label, "max_new_tokens": MAX_NEW,

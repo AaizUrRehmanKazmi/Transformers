@@ -17,7 +17,8 @@ Tiled / online softmax (the FlashAttention idea, in plain PyTorch):
   alpha = exp(m_old - m_new). At the end the output is acc / l, which equals the full softmax
   but never materialises the [Tq, Tk] score matrix; only a [block_q, block_k] tile exists.
   Tiles lying entirely in the causal future are skipped.
-All statistics are kept in float32 regardless of input dtype.
+Half-precision inputs use float32 statistics; float64 inputs retain float64 for
+high-precision validation. Outputs retain the input dtype.
 """
 import torch
 import torch.nn.functional as F
@@ -34,13 +35,14 @@ def reference_attention(q, k, v, causal=True):
     if causal:
         assert tk >= tq, "causal attention needs Tk >= Tq"
     scale = q.shape[-1] ** -0.5
-    s = (q.float() @ k.float().transpose(-1, -2)) * scale
+    dtype = torch.float64 if q.dtype == torch.float64 else torch.float32
+    s = (q.to(dtype) @ k.to(dtype).transpose(-1, -2)) * scale
     if causal:
         s = s.masked_fill(~_causal_mask(tq, tk, q.device), float("-inf"))
     s = s - s.amax(dim=-1, keepdim=True)          # subtract row max: exp() cannot overflow
     p = torch.exp(s)
     p = p / p.sum(dim=-1, keepdim=True)
-    return (p @ v.float()).to(q.dtype)
+    return (p @ v.to(dtype)).to(q.dtype)
 
 
 def tiled_attention(q, k, v, causal=True, block_q=64, block_k=64):
@@ -53,15 +55,16 @@ def tiled_attention(q, k, v, causal=True, block_q=64, block_k=64):
     scale = D ** -0.5
     offset = tk - tq
     dev = q.device
+    dtype = torch.float64 if q.dtype == torch.float64 else torch.float32
     out = torch.empty_like(q)
 
     for qs in range(0, tq, block_q):
         qe = min(qs + block_q, tq)
-        qb = q[:, :, qs:qe].float()
+        qb = q[:, :, qs:qe].to(dtype)
         bq = qe - qs
-        m = torch.full((B, H, bq), float("-inf"), device=dev, dtype=torch.float32)
-        l = torch.zeros((B, H, bq), device=dev, dtype=torch.float32)
-        acc = torch.zeros((B, H, bq, D), device=dev, dtype=torch.float32)
+        m = torch.full((B, H, bq), float("-inf"), device=dev, dtype=dtype)
+        l = torch.zeros((B, H, bq), device=dev, dtype=dtype)
+        acc = torch.zeros((B, H, bq, D), device=dev, dtype=dtype)
         q_pos = torch.arange(qs, qe, device=dev) + offset
         last_visible_key = (qe - 1) + offset if causal else tk - 1
 
@@ -69,7 +72,7 @@ def tiled_attention(q, k, v, causal=True, block_q=64, block_k=64):
             if ks > last_visible_key:             # whole tile is in the future of every query
                 break
             ke = min(ks + block_k, tk)
-            s = (qb @ k[:, :, ks:ke].float().transpose(-1, -2)) * scale   # [B,H,bq,bk]
+            s = (qb @ k[:, :, ks:ke].to(dtype).transpose(-1, -2)) * scale   # [B,H,bq,bk]
             if causal:
                 allowed = torch.arange(ks, ke, device=dev)[None, :] <= q_pos[:, None]
                 s = s.masked_fill(~allowed, float("-inf"))
@@ -80,7 +83,7 @@ def tiled_attention(q, k, v, causal=True, block_q=64, block_k=64):
             p = torch.exp(s - m_ref[..., None])
             alpha = torch.exp(m - m_ref)          # rescales what was accumulated so far
             l = l * alpha + p.sum(dim=-1)
-            acc = acc * alpha[..., None] + p @ v[:, :, ks:ke].float()
+            acc = acc * alpha[..., None] + p @ v[:, :, ks:ke].to(dtype)
             m = m_new
 
         out[:, :, qs:qe] = (acc / l[..., None]).to(q.dtype)

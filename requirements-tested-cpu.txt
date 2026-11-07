@@ -1,0 +1,14 @@
+# Direct dependency snapshot from the passing CPU environment (Python 3.14.8).
+# Not the original GPU training environment and not a full transitive lock.
+torch==2.15.0+cpu
+transformers==5.22.1
+peft==0.21.2
+gradio==6.31.0
+datasets==5.1.0
+accelerate==1.15.0
+numpy==2.5.4
+scikit-learn==1.9.1
+pandas==3.1.1
+matplotlib==3.11.2
+huggingface_hub==2.4.0
+pytest==9.2.0

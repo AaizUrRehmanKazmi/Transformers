@@ -7,7 +7,7 @@ KV-cached decoding, tiled online-softmax attention and greedy speculative decodi
 
 > **Not a clinical decision tool.** Predictions can be wrong and must never be used for patient enrollment.
 
-Author: `<your name>`, roll no. 23I-0589, section D, FAST-NUCES.
+Author: Aaiz Ur Rehman Kazmi, roll no. 23I-0589, Generative AI section A, FAST-NUCES.
 
 ## Links
 
@@ -16,8 +16,11 @@ Author: `<your name>`, roll no. 23I-0589, section D, FAST-NUCES.
 | Trained adapter (LoRA, final checkpoint) | https://huggingface.co/AK302/trialgpt-qwen1.5b-lora (subfolder `lora_r16_bal/epoch3`) |
 | Split manifest | `data/split_manifest.json` |
 | Benchmark and evaluation logs | `benchmarks/logs/`, `eval/results/` |
-| Report (PDF) | `<link or path>` |
-| Demo video (5-7 min) | `<link>` |
+| Report (PDF draft) | [report/main.pdf](report/main.pdf) |
+| IEEE LaTeX source | [report/main.tex](report/main.tex) |
+| Reproduction guide | [docs/REPRODUCIBILITY.md](docs/REPRODUCIBILITY.md) |
+| Demo video (5-7 min) | Recording pending; [timed script](docs/DEMO_SCRIPT.md) |
+| Submission checklist | [docs/SUBMISSION_CHECKLIST.md](docs/SUBMISSION_CHECKLIST.md) |
 
 ## Setup
 
@@ -26,11 +29,12 @@ git clone https://github.com/AaizUrRehmanKazmi/Transformers.git
 cd Transformers
 python -m venv .venv && source .venv/bin/activate        # optional
 pip install -r requirements.txt
-python -m pytest -q tests                                 # 100 tests, no GPU or download needed
+python -m pytest -q tests                                 # 113 tests, no GPU or download needed
 ```
 
-Tested with Python 3.13 on Kaggle (T4 16 GB): torch, transformers, peft and gradio versions are in
-`requirements.txt` (record exact versions with `pip freeze` if you need to reproduce bit-for-bit).
+Original experiments were described as Python 3.13 on Kaggle (T4 16 GB); the original full environment lock
+was not retained. `requirements.txt` lists dependencies, not exact original versions. The current passing
+CPU environment is recorded in `requirements-tested-cpu.txt` and the reproduction guide.
 The base model (about 3 GB) and the adapter (about 74 MB) download automatically on first use. If the adapter
 repo is private, run `huggingface-cli login` or set `HF_TOKEN` first.
 
@@ -67,7 +71,7 @@ python data/build_prompts.py            # token-length / truncation / label stat
 python train/finetune.py --name lora_r16_bal --epochs 3 --batch-size 2 --grad-accum 8 --grad-ckpt \
        --oversample-min 80 --max-repeat 4 --hub-id <your-hf-user>/trialgpt-qwen1.5b-lora
 
-# Evaluation (pure greedy decoding, repetition_penalty=1.0), validation then the single final test run
+# Evaluation (pure greedy decoding, repetition_penalty=1.0); do not tune using test results
 python eval/run_eval.py --name baseline_val_greedy --split val
 python eval/run_eval.py --name final_val_greedy --split val --adapter <adapter_dir>
 python eval/run_eval.py --name baseline_test_greedy --split test --final
@@ -80,8 +84,11 @@ python benchmarks/bench_attention.py                       # reference vs tiled 
 python benchmarks/bench_speculative.py --dtype float16     # plain vs speculative greedy
 ```
 
-`<adapter_dir>` is a local adapter directory (for example a `snapshot_download` of the Hub repo's
-`lora_r16_bal/epoch3` folder). `--test` evaluation requires the explicit `--final` flag.
+`<adapter_dir>` is a local adapter directory (for example a download of the Hub repo's
+`lora_r16_bal/epoch3` folder). `--split test` evaluation requires the explicit `--final` flag.
+Earlier test evaluations are retained alongside the primary `_greedy` results; the repository does not
+establish a single untouched final test evaluation. Saved scores evaluate raw model outputs, before the
+application's later age/evidence review rules. See the paper for provenance and limitations.
 
 Training configuration: LoRA r=16, alpha=32, dropout 0.05 on all attention and MLP projections, lr 2e-4 with
 cosine decay and 5% warmup, 3 epochs, effective batch 16, max length 1024 tokens (longest prompt: 567 tokens, so
@@ -105,7 +112,7 @@ information is missing. Details: `eval/results/*/metrics.json` and `error_analys
 |---|---|
 | KV cache (own implementation) | Token-identical to the uncached reference in all 9 input/output length combinations; about 27 tok/s cached vs 5-23 tok/s uncached (5x faster at 512 input tokens) |
 | Tiled online-softmax attention | Error vs fp32 reference about 5e-7 (fp32 inputs); extra memory 17 MiB vs 2304 MiB at T=4096; about 4x slower than the plain reference and 68x slower than PyTorch SDPA (Python loop vs fused kernel) |
-| Speculative decoding (0.5B draft) | Token-identical to plain greedy on 20/20 prompts for k = 1..8; acceptance 0.81 (k=1) to 0.48 (k=8); 0.50x-0.74x speed (slower: decoding here is launch-overhead bound, so draft steps cost almost as much as target steps) |
+| Speculative decoding (0.5B draft) | Token-identical to plain greedy on 20/20 prompts for k = 1, 2, 3, 4, 6, 8; acceptance 0.81 (k=1) to 0.48 (k=8); 0.50x-0.74x speed (draft/verification overhead outweighs saved target calls; launch overhead is a plausible explanation, not a profiled finding) |
 
 ## Repository layout
 
@@ -128,5 +135,7 @@ outcome in the app is a rule-based aggregation of criterion-level predictions, n
 
 ## AI assistance
 
-An AI assistant (Claude, Anthropic) was used for code scaffolding, debugging and drafting explanations. All code was
-run and tested by the author. `<edit this paragraph to describe exactly what you used it for>`
+The original README acknowledges Claude assistance with scaffolding, debugging, and drafting explanations.
+Codex assisted with review, application checks, cache API compatibility, numerical tests, documentation,
+literature lookup, and the IEEE paper draft. The current CPU suite passed 113 tests; historical GPU results
+were not rerun during finalization. The student must review this disclosure and defend the complete submission.

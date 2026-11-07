@@ -37,6 +37,17 @@ def tokenizers_compatible(tok_a, tok_b):
     return tok_a.get_vocab() == tok_b.get_vocab() and tok_a.eos_token == tok_b.eos_token
 
 
+def _crop_to_length(cache, length):
+    """Remove excess tokens using the relative crop API supported across versions."""
+    excess = cache.get_seq_length() - length
+    if excess < 0:
+        raise ValueError("Cannot extend a cache by cropping it")
+    # Older versions interpret crop(0) as clearing the cache; newer ones
+    # interpret it as a no-op. Skip it explicitly when all proposals matched.
+    if excess:
+        cache.crop(-excess)
+
+
 @torch.no_grad()
 def generate_speculative(target, draft, input_ids, max_new_tokens, k=4, eos_ids=()):
     assert input_ids.shape[0] == 1 and k >= 1
@@ -94,11 +105,11 @@ def generate_speculative(target, draft, input_ids, max_new_tokens, k=4, eos_ids=
             break
 
         keep = cur + m + 1                              # 4. cache synchronisation
-        t_cache.crop(keep)
+        _crop_to_length(t_cache, keep)
         if m == k_eff:
             fwd(draft, d_cache, draft_ids[:, -1:], cur + k_eff)   # draft never saw d_k
         else:
-            d_cache.crop(keep)
+            _crop_to_length(d_cache, keep)
         cur, last = keep, new[:, -1:]
 
     _sync(dev); t2 = time.perf_counter()

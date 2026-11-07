@@ -1,7 +1,43 @@
 import pytest
 
 from app.screening import (InputError, aggregate, build_report_html, build_report_markdown, number_note,
-                           parse_criteria, validate_inputs, age_bounds, age_check, patient_age)
+                           parse_criteria, validate_inputs, age_bounds, age_check, patient_age, review_result)
+
+
+@pytest.mark.parametrize('age,expected', [(20, 'not included'), (39, 'not included'), (40, 'included'), (62, 'included')])
+def test_review_age_threshold(age, expected):
+    sents = [(0, f'A {age}-year-old man presents with chest pain.')]
+    r = review_result(res('inclusion', 'not enough information', criterion='Adults aged 40 years or older'), sents)
+    assert r['label'] == expected
+    assert r['model_label'] == 'not enough information'
+    assert r['evidence'] == sents
+
+
+def test_report_regression_age_and_missing_surgery():
+    sents = [(0, 'A 20-year-old man presents with chest pain.')]
+    age = review_result(res('inclusion', 'not enough information', criterion='Adults aged 40 years or older'), sents)
+    surgery = res('exclusion', 'not excluded', criterion='Prior coronary artery bypass surgery')
+    surgery['evidence'] = []
+    surgery = review_result(surgery, sents)
+    assert surgery['label'] == 'not enough information'
+    assert surgery['model_label'] == 'not excluded'
+    overall = aggregate([age, surgery])
+    assert overall['status'] == 'LIKELY INELIGIBLE'
+    assert overall['missing'] == ['Prior coronary artery bypass surgery']
+    meta = dict(timestamp='t', model='m', adapter='a', decoding_mode='d', max_new_tokens=64, device='cpu')
+    for render in (build_report_html, build_report_markdown):
+        report = render([age, surgery], sents, overall, meta)
+        assert 'Original model label' in report and 'Age check' in report
+
+
+@pytest.mark.parametrize('note,criterion', [
+    ('His father is a 20-year-old man.', 'Adults aged 40 years or older'),
+    ('A 20-year-old man. His wife is 45 years old.', 'Adults aged 40 years or older'),
+    ('A 20-year-old man.', 'Adults aged 40 years or older with diabetes'),
+])
+def test_review_does_not_override_ambiguous_age(note, criterion):
+    r = review_result(res('inclusion', 'not enough information', criterion=criterion), number_note(note))
+    assert r['label'] == 'not enough information'
 
 NOTE = "A 62-year-old man presents with chest pain. He has diabetes. He takes aspirin daily."
 

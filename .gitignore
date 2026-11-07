@@ -10,3 +10,9 @@ train/runs/*/best/
 *.bin
 *.pt
 app/reports/
+.venv/
+artifacts/
+report/*.aux
+report/*.log
+report/*.out
+tmp/pdfs/

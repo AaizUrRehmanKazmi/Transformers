@@ -43,7 +43,19 @@ def test_large_logits_stay_finite_and_correct():
     ref = reference_attention(q, k, v, True)
     out = tiled_attention(q, k, v, True, block_q=16, block_k=16)
     assert torch.isfinite(out).all() and torch.isfinite(ref).all()
-    assert (out - ref).abs().max().item() < 1e-4
+    # Large scores amplify float32 dot-product rounding, which depends on
+    # matrix/tile shape. Validate both paths against an independent fp64 oracle
+    # instead of assuming the full-matrix float32 result is exact.
+    scores = (q.double() @ k.double().transpose(-1, -2)) * q.shape[-1] ** -0.5
+    mask = torch.ones(80, 80, dtype=torch.bool).tril()
+    oracle = scores.masked_fill(~mask, float('-inf')).softmax(-1) @ v.double()
+    for actual in (ref, out):
+        torch.testing.assert_close(actual.double(), oracle, atol=1e-3, rtol=0)
+    # Algorithmic correctness is checked much more tightly in float64.
+    for actual in (reference_attention(q.double(), k.double(), v.double()),
+                   tiled_attention(q.double(), k.double(), v.double(), block_q=16, block_k=16)):
+        assert actual.dtype == torch.float64
+        torch.testing.assert_close(actual, oracle, atol=1e-10, rtol=0)
 
 
 def test_causality_future_tokens_do_not_leak():
